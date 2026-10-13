@@ -1,0 +1,8 @@
+{
+  "jennifer_url": "http://127.0.0.1:7900",
+  "jennifer_token": "YOUR_OPEN_API_TOKEN_HERE",
+  "domain_id": 1,
+  "mcp_host": "127.0.0.1",
+  "mcp_port": 8791,
+  "timeout": 30
+}
