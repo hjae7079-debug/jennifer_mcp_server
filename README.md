@@ -79,6 +79,10 @@ mcp_servers:
     command: "python"
     args:
       - "/home/사용자계정명/jennifer_mcp_server/server.py"
+
+# 제니퍼 APM MCP 서버 (HTTP 서버 모드)
+  jennifer_apm:
+    url: "[http://127.0.0.1:8791/sse](http://127.0.0.1:8791/sse)"
 ```
 
 > **💡 팁:** `args`에 지정하는 `server.py`의 경로는 반드시 시스템 상의 **절대 경로(Absolute Path)**를 입력하셔야 에러 없이 정상 구동됩니다.
