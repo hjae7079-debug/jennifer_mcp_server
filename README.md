@@ -80,7 +80,7 @@ mcp_servers:
     args:
       - "/home/사용자계정명/jennifer_mcp_server/server.py"
 
-# 제니퍼 APM MCP 서버 (HTTP 서버 모드)
+  # 새로 추가하는 JENNIFER APM MCP 서버 (HTTP 서버 모드)
   jennifer_apm:
     url: "[http://127.0.0.1:8791/sse](http://127.0.0.1:8791/sse)"
 ```
