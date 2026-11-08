@@ -1,0 +1,13 @@
+{
+  "python_compileall": "PASS",
+  "shell_bash_n": "PASS",
+  "yaml_json_xml_parse": "PASS",
+  "react_jsx_parse": "PASS",
+  "pytest": "PASS - 6 tests passed",
+  "react_vite_production_build": "NOT_COMPLETED - npm package installation timed out in the generation environment; run scripts/40-build-apps.sh on the internet-connected GPU PC",
+  "docker_compose_and_image_pull": "NOT_RUN - Docker CLI is not available in the generation environment",
+  "gpu_offline_end_to_end": "NOT_RUN - requires the target RTX 5080 Ubuntu PC and the real offline network",
+  "real_institution_incident_event_api": "NOT_RUN - real endpoints/auth/JSON were not supplied",
+  "jennifer_mcp_tool_schema": "NOT_RUN - actual MCP server schema/transport was not supplied or connected",
+  "dify_workflow": "NOT_RUN - Dify endpoint/API key/workflow mapping not supplied"
+}

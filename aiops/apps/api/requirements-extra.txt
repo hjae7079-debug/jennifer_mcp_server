@@ -1,0 +1,9 @@
+# 폐쇄망 설치 가능 범위. 번들 생성(build-offline-caches.sh) 때 버전이 고정됩니다.
+clickhouse-connect
+redis
+PyJWT
+argon2-cffi
+PyYAML
+jsonpath-ng
+tenacity
+pytest

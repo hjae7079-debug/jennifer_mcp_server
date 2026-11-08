@@ -1,0 +1,13 @@
+# 보안 확인 목록
+- [ ] `.env` root 소유, 권한 600
+- [ ] 일반 사용자에게 Docker 그룹 권한 미부여
+- [ ] 18080/18081은 실제 내부 사용자 대역에만 허용
+- [ ] API 18000 loopback 전용, Ollama/DB/Redis/ClickHouse 외부 비공개
+- [ ] 운영 전 SSO/RBAC 또는 역방향 프록시 인증 적용
+- [ ] TLS 인증서 및 HTTPS 18443 구성
+- [ ] 이미지 digest/SBOM/CVE/라이선스 검토
+- [ ] API 토큰 최소 권한/읽기 전용
+- [ ] Jennifer tool schema 검증 전 tool call 금지
+- [ ] 수집 데이터 prompt injection 방어 검토
+- [ ] 백업 암호화 및 복구 테스트
+- [ ] 로그에서 비밀번호/토큰/민감정보 마스킹

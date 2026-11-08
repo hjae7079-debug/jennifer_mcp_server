@@ -1,0 +1,8 @@
+# IMAGE_MODE=dev 일 때 사용: 파이썬 코드 수정 후 컨테이너 재시작만으로 반영
+services:
+  api:
+    volumes:
+      - ./apps/api/app:/app/app:ro
+  worker:
+    volumes:
+      - ./apps/api/app:/app/app:ro

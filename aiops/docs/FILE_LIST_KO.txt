@@ -1,0 +1,47 @@
+AIOps 통합분석 대시보드 패키지 v0.3.1 파일 목록
+
+핵심 앱
+- apps/web/src/main.jsx: React 대시보드, 테마 전환, 카드/표, 목록/상세 화면
+- apps/web/src/style.css: 밝은/어두운 테마와 반응형 스타일
+- apps/api/app/main.py: FastAPI 엔드포인트
+- apps/api/app/repository.py: PostgreSQL/pgvector 스키마와 저장소
+- apps/api/app/worker.py: 이력 폴링 및 장애 우선 분석 Worker
+- apps/api/app/analyzer.py: Ollama Qwen3 분석, BGE-M3 임베딩, Dify Workflow 호출
+- apps/api/app/adapters/history.py: 장애/이벤트 API의 설정형 어댑터 및 엄격한 JSON 정규화
+- apps/api/app/adapters/jennifer_mcp.py: Jennifer MCP initialize/tools/list 탐색 전용 어댑터
+- apps/api/app/adapters/dify.py: Dify Workflow API 어댑터
+- apps/api/tests/: 어댑터 및 분석 파싱 테스트
+
+서비스/설정
+- docker-compose.yml: PostgreSQL/pgvector, ClickHouse, Redis, Ollama, Open WebUI, FastAPI, Worker, Nginx
+- config/nginx.conf: React 정적 파일과 FastAPI reverse proxy
+- config/clickhouse-backup.xml: ClickHouse 백업 디스크
+- config/mcp.env.example: MCP 연결 설정 예시
+- .env.example: 환경변수 템플릿(비밀번호는 install-all에서 생성)
+
+설치/운영 스크립트
+- scripts/00-preflight.sh: OS/GPU/마운트 사전 점검
+- scripts/10-prepare-host.sh: Docker 준비, 데이터 디렉터리와 권한 설정
+- scripts/20-setup-storage.sh: /data 및 /backup 마운트 확인(포맷하지 않음)
+- scripts/30-install-nvidia-container-toolkit.sh: NVIDIA Container Toolkit 설치/검증
+- scripts/40-build-apps.sh: FastAPI 이미지 및 React 빌드, runtime 이미지 다운로드
+- scripts/50-deploy-services.sh, scripts/55-offline-install.sh: 폐쇄망 서비스 기동
+- scripts/60-download-models.sh: Qwen3-14B/BGE-M3 다운로드, 선택적 Coder 모델
+- scripts/70-healthcheck.sh, scripts/85-test-llm.sh: 상태 및 질의/임베딩 테스트
+- scripts/80-package-offline.sh: 이미지 tar, manifest, SHA256, 오프라인 번들 생성
+- scripts/50-stop.sh, 51-start.sh, 52-status.sh, 53-logs.sh: 운영 제어
+- scripts/54-update-online.sh: 안전한 업데이트 절차 안내
+- scripts/90-backup.sh, 95-install-backup-timer.sh: DB/설정 백업과 일일 타이머
+- scripts/install-all.sh: 인터넷 환경 초기 준비 오케스트레이터
+
+문서
+- docs/INSTALL_KO.md: 설치 및 폐쇄망 이전
+- docs/USER_GUIDE_KO.md: 사용자 매뉴얼
+- docs/OPERATIONS_GUIDE_KO.md: 운영 매뉴얼
+- docs/AIOps_사용자_운영_매뉴얼.docx: Word 통합 매뉴얼
+- docs/API_AND_ADAPTERS_KO.md: API/어댑터 계약
+- docs/OPEN-ITEMS.md: 실제 연동 전 현장 확인 목록
+- docs/POST-INSTALL.md: 폐쇄망 이후 작업 순서
+- docs/TEST_REPORT_KO.md, STATIC_VALIDATION_RESULTS.json: 검증 범위/한계
+- config/SECURITY_CHECKLIST_KO.md: 보안 체크리스트
+- dify/README_KO.md: Dify Workflow 연결 안내
