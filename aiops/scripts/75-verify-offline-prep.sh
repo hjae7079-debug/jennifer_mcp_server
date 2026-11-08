@@ -12,7 +12,17 @@ docker compose config --images | sort -u | while read -r image; do
   echo "OK $image"
 done
 echo "== 앱 이미지 확인 =="
-docker image inspect aiops-api:0.3.1 >/dev/null
+docker image inspect "aiops-api:${APP_VERSION:-0.3.3}" >/dev/null
+docker image inspect "aiops-jennifer-mcp:${APP_VERSION:-0.3.3}" >/dev/null
+echo "== 빌드 기반 이미지 확인 (폐쇄망 재빌드용) =="
+for image in python:3.12-slim-bookworm node:22-alpine ubuntu:22.04; do
+  docker image inspect "$image" >/dev/null 2>&1 || { echo "기반 이미지 누락: $image"; exit 13; }
+  echo "OK $image"
+done
+echo "== 오프라인 빌드 자원 =="
+ls apps/api/wheelhouse/*.whl >/dev/null 2>&1 || { echo "API wheelhouse 비어 있음 (build-offline-caches.sh)"; exit 14; }
+ls mcp-servers/jennifer/wheelhouse/*.whl >/dev/null 2>&1 || { echo "MCP wheelhouse 비어 있음 (build-offline-caches.sh)"; exit 15; }
+[[ -f apps/web/package-lock.json ]] || { echo "apps/web/package-lock.json 없음 (40-build-apps.sh)"; exit 16; }
 echo "== Ollama 모델 확인 =="
 for model in "$PRIMARY_MODEL" "$EMBEDDING_MODEL"; do
   docker compose exec -T ollama ollama show "$model" >/dev/null || { echo "모델 누락: $model"; exit 11; }

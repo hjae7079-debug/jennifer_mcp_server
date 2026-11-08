@@ -1,4 +1,6 @@
-AIOps 통합분석 대시보드 패키지 v0.3.1 파일 목록
+AIOps 통합분석 대시보드 패키지 v0.3.3 파일 목록
+
+(v0.3.3 추가) mcp-servers/jennifer/: Jennifer 읽기 전용 MCP 서버 / scripts/15-pin-host.sh, 17-docker-firewall.sh, restore-offline-caches.sh / config/dev-requirements.txt, extra-images.txt, jennifer-servers.json
 
 핵심 앱
 - apps/web/src/main.jsx: React 대시보드, 테마 전환, 카드/표, 목록/상세 화면

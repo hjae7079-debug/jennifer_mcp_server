@@ -1,4 +1,6 @@
-# AIOps 통합분석 대시보드 패키지 v0.3.1
+# AIOps 통합분석 대시보드 패키지 v0.3.3
+
+> v0.3.3 변경: `docs/CHANGES_v0.3.3_KO.md`. 설치 절차는 `docs/MANUAL_KO.md`(= 저장소 `docs/AIOps_설치_운영_매뉴얼_v0_3_3.md`)를 따르세요. 아래 빠른 시작은 요약입니다.
 
 Ubuntu 24.04 폐쇄망 GPU PC용 React 대시보드와 초기 설치·오프라인 번들 스크립트입니다.
 
@@ -22,14 +24,15 @@ Ubuntu 24.04 폐쇄망 GPU PC용 React 대시보드와 초기 설치·오프라�
 - Open WebUI는 별도 포트/UI
 - Dify Workflow API client 포함(단, Dify 서버 자체의 버전별 공식 Compose 배포는 별도 승인·오프라인 번들 작업 필요)
 - Jennifer MCP adapter는 `initialize`/`tools/list` 탐색만 구현. 실제 tool 호출은 실제 서버 도구 스키마 확인 전까지 차단
+- Jennifer MCP 서버(`mcp-servers/jennifer/`, compose 서비스 `jennifer-mcp`): 읽기 전용, 설치 직후 비활성
 
 ## 빠른 시작
 1. NVMe `/data`, HDD `/backup`을 먼저 마운트합니다. 스크립트는 포맷/파티션 변경을 하지 않습니다.
-2. ZIP을 `sudo unzip aiops_integrated_dashboard_v0.3.1.zip -d /opt`로 풀어 `/opt/aiops`에 설치하고 `cd /opt/aiops`로 이동합니다. 이 경로는 systemd 백업 타이머가 참조하므로 이동 후에도 유지합니다.
-3. 프로젝트 루트에서 `.env`를 만듭니다. `sudo scripts/install-all.sh`는 `.env`가 없으면 암호를 생성하고 종료하므로 설정을 확인한 후 재실행합니다.
-4. 인터넷 환경에서 `sudo scripts/install-all.sh`를 실행합니다. 이 단계는 다운로드/빌드/모델 확보/오프라인 번들 생성까지만 수행하며 전체 웹 UI를 임시 인터넷망에 공개하지 않습니다.
-4. 같은 GPU PC를 폐쇄망으로 이동하고 IP를 `10.148.216.55/26`, 게이트웨이 `10.148.216.1`로 설정합니다.
-6. `sudo scripts/55-offline-install.sh` → `sudo scripts/70-healthcheck.sh`를 실행합니다.
+2. 저장소를 받아 `/opt/aiops`로 연결합니다: `sudo git clone <저장소> /opt/aiops-src && sudo ln -sfn /opt/aiops-src/aiops /opt/aiops && cd /opt/aiops && sudo cp .env.example .env`
+3. 인터넷(NAT) 환경에서 `sudo bash scripts/install-all.sh` (00 → 15 → 10 → 20 → 30 → 06 → 07 → 40 → 60 → 50 → 70 → 85). `WEB_BIND_IP=127.0.0.1`이라 외부에 공개되지 않습니다.
+4. `sudo bash scripts/build-offline-caches.sh` → `sudo bash scripts/75-verify-offline-prep.sh` (실패하면 NAT를 끊지 않습니다).
+5. `.env`를 `DEPLOY_MODE=offline`, `WEB_BIND_IP=10.148.216.55`로 바꾸고 IP를 `10.148.216.55/26`, 게이트웨이 `10.148.216.1`로 설정, NAT 차단.
+6. `sudo bash scripts/verify-offline.sh` → `ALLOWED_CIDRS` 입력 후 `sudo bash scripts/17-docker-firewall.sh`.
 
 ## 접속
 - 대시보드: `https://10.148.216.55:18080` (기본 인증 계정 필요)

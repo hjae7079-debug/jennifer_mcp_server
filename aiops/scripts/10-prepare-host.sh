@@ -47,6 +47,7 @@ ensure_dir "$DATA_ROOT/open-webui" 0 0
 ensure_dir "$DATA_ROOT/logs/clickhouse" 101 101
 ensure_dir "$BACKUP_ROOT/aiops-install/clickhouse" 101 101
 ensure_dir "$DATA_ROOT/collection" 0 0
+ensure_dir "$DATA_ROOT/logs/jennifer-mcp" 10002 10002
 chmod 600 "$ROOT/.env"
 if ! grep -q '^POSTGRES_PASSWORD=' "$ROOT/.env"; then printf '\nPOSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 32)" >> "$ROOT/.env"; fi
 if ! grep -q '^CLICKHOUSE_PASSWORD=' "$ROOT/.env"; then printf '\nCLICKHOUSE_PASSWORD=%s\n' "$(openssl rand -hex 32)" >> "$ROOT/.env"; fi

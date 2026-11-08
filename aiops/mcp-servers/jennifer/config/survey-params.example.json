@@ -1,0 +1,5 @@
+{
+  "_comment": "survey(전수 GET 호출)에 쓸 기본 파라미터. 실제 도메인·인스턴스 ID로 바꿉니다. 시간 파라미터(start_time/end_time 등)는 자동으로 최근 N분이 들어갑니다.",
+  "domain_id": 1000,
+  "instance_id": 10001
+}

@@ -8,7 +8,7 @@ from . import repository as repo
 from .adapters.history import HistoryApiAdapter
 from .adapters.jennifer_mcp import JenniferMCPAdapter, JenniferMCPError
 from .adapters.dify import DifyWorkflowAdapter
-from .analyzer import embed, MODEL, EMBED_MODEL, OLLAMA
+from .analyzer import embed, MODEL, EMBED_MODEL, OLLAMA, ollama_options
 
 logging.basicConfig(level=os.getenv('LOG_LEVEL','INFO'))
 log=logging.getLogger('aiops.api')
@@ -86,7 +86,7 @@ async def jennifer_discover():
 async def chat(req:Chat):
     try:
         async with httpx.AsyncClient(timeout=180) as client:
-            r=await client.post(f'{OLLAMA}/api/chat',json={'model':MODEL,'messages':[{'role':'user','content':req.question}],'stream':False}); r.raise_for_status(); j=r.json()
+            r=await client.post(f'{OLLAMA}/api/chat',json={'model':MODEL,'messages':[{'role':'user','content':req.question}],'stream':False,'think':False,'options':ollama_options(0.3)}); r.raise_for_status(); j=r.json()
         return {'model':j.get('model',MODEL),'answer':j.get('message',{}).get('content','')}
     except Exception as exc: raise HTTPException(502,f'로컬 LLM 요청 실패({type(exc).__name__})')
 

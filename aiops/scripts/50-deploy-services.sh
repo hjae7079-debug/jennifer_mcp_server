@@ -14,15 +14,17 @@ if [[ "$WEB_BIND_IP" != "127.0.0.1" ]]; then
     || { echo "현재 호스트에 WEB_BIND_IP=$WEB_BIND_IP 주소가 없습니다. 폐쇄망 IP를 먼저 적용하세요."; exit 3; }
 fi
 for d in postgresql clickhouse redis models/ollama open-webui logs/clickhouse; do install -d "$DATA_ROOT/$d"; done
+[[ -d "$DATA_ROOT/logs/jennifer-mcp" ]] || install -d -o 10002 -g 10002 "$DATA_ROOT/logs/jennifer-mcp"
+[[ -f config/jennifer-servers.json ]] || cp mcp-servers/jennifer/config/servers.example.json config/jennifer-servers.json
 
 FILES=(-f docker-compose.yml)
 [[ "${IMAGE_MODE:-dev}" == "dev" ]] && FILES+=(-f docker-compose.dev.yml)
 
 if [[ "${DEPLOY_MODE:-online}" == "online" ]]; then
-  docker compose "${FILES[@]}" build --build-arg PIP_NO_INDEX=0 api
+  docker compose "${FILES[@]}" build --build-arg PIP_NO_INDEX=0 api jennifer-mcp
   docker compose "${FILES[@]}" up -d
 else
-  docker compose "${FILES[@]}" build --pull=false --build-arg PIP_NO_INDEX=1 api
+  docker compose "${FILES[@]}" build --pull=false --build-arg PIP_NO_INDEX=1 api jennifer-mcp
   docker compose "${FILES[@]}" up -d --no-build --pull never
 fi
 docker compose "${FILES[@]}" ps

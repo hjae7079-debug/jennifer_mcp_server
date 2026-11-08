@@ -13,6 +13,17 @@ set_if_empty() {
 set_if_empty POSTGRES_PASSWORD "$(openssl rand -hex 24)"
 set_if_empty CLICKHOUSE_PASSWORD "$(openssl rand -hex 24)"
 set_if_empty WEBUI_SECRET_KEY "$(openssl rand -hex 32)"
+set_if_empty JENNIFER_MCP_TOKEN "$(openssl rand -hex 32)"
+# 이전 버전 .env 에 키가 없으면 추가
+grep -q '^JENNIFER_MCP_TOKEN=' .env || { printf '\nJENNIFER_MCP_TOKEN=%s\n' "$(openssl rand -hex 32)" >> .env; echo "생성: JENNIFER_MCP_TOKEN"; }
+
+# Jennifer MCP: 뷰서버 토큰 파일(빈 값, 비활성)과 서버 목록
+if [[ ! -f config/jennifer-mcp.env ]]; then
+  install -m 0600 -o root -g root mcp-servers/jennifer/jennifer-mcp.env.example config/jennifer-mcp.env
+  echo "생성: config/jennifer-mcp.env (토큰 비어 있음, JENNIFER_MCP_ENABLED=false)"
+fi
+chmod 600 config/jennifer-mcp.env
+[[ -f config/jennifer-servers.json ]] || cp mcp-servers/jennifer/config/servers.example.json config/jennifer-servers.json
 
 source .env
 CERT_DIR="${DATA_ROOT}/certs"; install -d -m 0700 "$CERT_DIR"

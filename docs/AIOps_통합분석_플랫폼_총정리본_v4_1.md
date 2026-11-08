@@ -1,8 +1,14 @@
-# AI-Ops 통합분석 플랫폼 총정리본 (v4.0)
+# AI-Ops 통합분석 플랫폼 총정리본 (v4.1)
 
-기준일: 2026-11-01
+기준일: 2026-11-08 (v4.0: 2026-11-01)
 범위: 목표 · 구성 · 동작 방식 · 연결 방식 · 화면 · 권한 · 보안 · 운영 · 설치 · 로드맵
-이 문서는 지금까지 결정한 내용을 한 곳에 모은 것입니다. 이전 설계 문서(v1.2~v3.1)와 충돌하면 **이 문서가 우선**합니다.
+이 문서는 지금까지 결정한 내용을 한 곳에 모은 것입니다. 이전 설계 문서(v1.2~v4.0)와 충돌하면 **이 문서가 우선**합니다.
+
+### v4.0 → v4.1 변경 요약
+- 설치 패키지 v0.3.3, Jennifer MCP 서버 v0.4.0 기준으로 갱신 (저장소: github `hjae7079-debug/jennifer_mcp_server`)
+- 틀린 부분 수정: Docker 공개 포트는 ufw로 막히지 않음(9장), 모델 동시 적재 수(3.3), 오프라인 자원 목록(12.3), MCP 연결 주소(4.2)
+- 추가: 폐쇄망 개발 방식(13.1), 추가 MCP 반입 절차(13.2), 결정 D-20~D-25, 미결정 O-24~O-28
+- 상세 근거: `docs/REVIEW_v4_0_검토결과.md`
 
 ---
 
@@ -59,7 +65,8 @@ ITSM 장애·이벤트, Jennifer APM 성능 데이터, SIEM 로그를 한 플랫
 | 대시보드 | TCP 18080, HTTPS, 허용 대역에서만 접근 |
 | Open WebUI | TCP 18081, HTTPS, 허용 대역에서만 접근 |
 | FastAPI | 127.0.0.1:18000 (관리자 SSH 터널 전용) |
-| Ollama, DB, Redis, ClickHouse | 호스트 포트 없음 (컨테이너 내부망만) |
+| Ollama, DB, Redis, ClickHouse | 호스트 포트 없음 (컨테이너 내부망만). 예외: `IMAGE_MODE=dev`일 때 Ollama만 `127.0.0.1:11434` (호스트 코딩 도구용, D-24) |
+| Jennifer MCP 서버 | 호스트 포트 없음. 컨테이너 내부 `http://jennifer-mcp:8791/mcp` (D-20) |
 | 제니퍼 뷰서버 | 인터넷 업무 10.148.222.57:7900, 행정 업무 10.148.232.57:7900, 대민 업무 10.148.232.59:7900 |
 | ITSM, SIEM | 폐쇄망 내부 주소 (샘플 수집 시 확정) |
 
@@ -75,7 +82,7 @@ DNS, 인터페이스명, VLAN, 허용 대역은 폐쇄망 이전 시 현장에�
   ITSM (장애·이벤트·VM·업무)   Jennifer (WEB/WAS/DB 성능)   SIEM (보안·접근·로그)
         │ MCP/REST, 읽기 전용          │ Open API GET, 쓰기 차단       │ API/MCP, 조건 검색
         ▼                              ▼                              ▼
-  ┌──────────────────── 연동 계층 (어댑터, 호출 허용 목록) ─────────────────────┐
+  ┌──────── 연동 계층 (MCP 서버·어댑터, 호출 허용 목록) — jennifer-mcp 컨테이너 ────────┐
   └──────────────────────────────────────┬─────────────────────────────────────┘
                                          ▼
   ┌──────────────────────── FastAPI (업무 API, 권한 판단) ───────────────────────┐
@@ -112,6 +119,7 @@ DNS, 인터페이스명, VLAN, 허용 대역은 폐쇄망 이전 시 현장에�
 | LLM 추론 | Ollama 0.12.6 | Qwen3 14B, BGE-M3 |
 | 채팅 UI | Open WebUI v0.6.32 | 일반 사용자 LLM 채팅 (로그인 필수) |
 | 심화 분석 | Dify (2차) | 다단계 워크플로 |
+| Jennifer 연동 | Jennifer MCP 서버 v0.4.0 (Python, MCP SDK 1.26, Streamable HTTP) | 읽기 전용 조회 도구. API·Open WebUI가 공용 (D-20) |
 
 ### 3.3 모델
 | 모델 | 용도 | 비고 |
@@ -120,7 +128,16 @@ DNS, 인터페이스명, VLAN, 허용 대역은 폐쇄망 이전 시 현장에�
 | BGE-M3 | 유사 장애·승인 사례 임베딩 | |
 | Qwen2.5-Coder 14B | 개발 보조 | 개발자 그룹만 사용. 선택 사항 |
 
-GPU 메모리에 따라 생성 모델은 하나만 올립니다(`OLLAMA_MAX_LOADED_MODELS=1`). 동시 처리는 2건입니다(`OLLAMA_NUM_PARALLEL=2`).
+적재 모델 수는 **2**입니다(`OLLAMA_MAX_LOADED_MODELS=2`, D-21). 임베딩(bge-m3)도 모델 1개로 세므로, 1로 두면 임베딩 호출마다 Qwen3가 내려갔다 다시 올라갑니다. 생성 모델 두 개(Qwen3 + Coder)는 VRAM 16GB에 같이 들어가지 않으므로 Ollama가 자동으로 하나를 내립니다. 동시 처리는 2건입니다(`OLLAMA_NUM_PARALLEL=2`).
+
+| 설정 | 값 | 이유 |
+|---|---|---|
+| `OLLAMA_CONTEXT_LENGTH` | 16384 | 기본 4096이면 분석 프롬프트가 잘림 |
+| `OLLAMA_KV_CACHE_TYPE` | q8_0 | 병렬 2 × 16k에서 VRAM 절약 (예상 합계 13~15GB, O-26 실측) |
+| `OLLAMA_FLASH_ATTENTION` | 1 | KV 캐시 양자화 전제 |
+| 분석 호출 | `think: false`, `format: json` | Qwen3의 추론 출력이 JSON 파싱을 깨뜨림 (D-23) |
+
+Qwen2.5-Coder로 개발하는 동안에는 Qwen3가 내려가 분석이 느려집니다. 개발은 운영 시간 외에 합니다.
 
 ---
 
@@ -175,6 +192,8 @@ GPU 메모리에 따라 생성 모델은 하나만 올립니다(`OLLAMA_MAX_LOAD
 - 공식 명세의 GET 엔드포인트를 전수 호출하고, 파라미터 경계 케이스도 확인합니다.
 - **차단**: 모든 POST·PUT·DELETE, `/api-v2/manage/*`, `/restapi/*`, 사용자 목록(`/api/auth/userlist*`).
 - 조회 전용 토큰은 발급받을 수 없어 **현재 토큰으로 진행**합니다. 그래서 코드 차단 규칙을 단위 테스트로 검증하고, 모든 호출을 로그로 남깁니다.
+
+**구현 (v0.4.0, `aiops/mcp-servers/jennifer/`)**: 위 제약을 MCP 도구에서 코드로 강제합니다. 지표 1개 검사, 분 단위 정렬, `responseTime` 정렬 거부, transaction 60초 제한, clientIp·clientId 제거, 건수·크기 제한, 모든 호출 JSONL 로그. 경로·파라미터 이름은 `config/endpoints.json`에 두고 Swagger·전수 호출 결과로 확정합니다(미확인 항목 `verified: false`, O-24). 이전 버전(server.py)은 경로·전송 방식이 맞지 않아 폐기했습니다.
 
 **Jennifer 어댑터 장애 격리 (D-10)**: 서버 3대(인터넷, 행정, 대민)마다 타임아웃과 토큰을 분리합니다. 응답이 없으면 건너뛰고 "조회 불가(서버명, 사유)"를 결과에 표시합니다.
 
@@ -287,6 +306,8 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 - 채팅 계정과 대시보드 계정은 **분리 운영**합니다. 관리자가 계정을 만듭니다. 공개 가입은 막습니다.
 - 권한 연결: 관리자가 **매핑 표**(채팅 계정 ↔ 권한 역할 ↔ 사용자별 API 토큰)를 관리합니다. 누가 무엇을 조회했는지 추적할 수 있습니다.
 - Open WebUI가 사용자별 토큰을 도구 호출에 넘길 수 있는지는 **설치할 버전에서 확인**해야 합니다.
+- Open WebUI 0.6.31부터 MCP(Streamable HTTP) 서버를 직접 등록할 수 있습니다(0.6.32 사용). 등록 주소는 `http://jennifer-mcp:8791/mcp`, 인증은 Bearer 키입니다(O-25). 직접 연결에 문제가 있으면 `mcpo`(MCP→OpenAPI 프록시) 이미지를 대안으로 반입해 둡니다.
+- Open WebUI는 폐쇄망 설정(`OFFLINE_MODE`, `HF_HUB_OFFLINE`, RAG 임베딩=Ollama bge-m3)으로 기동합니다. 기본값이면 HuggingFace에서 임베딩 모델을 받으려 합니다.
 
 ---
 
@@ -296,6 +317,8 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 아래는 사용자가 제공한 목표 대시보드 이미지입니다. 위쪽은 라이트 테마, 아래쪽은 다크 테마입니다. 이미지는 예시 화면이며 실제 수집 데이터가 아닙니다.
 
 ![대시보드 예시 (라이트·다크)](images/dashboard_example.png)
+
+> 이미지 파일은 이 저장소에 아직 없습니다. `docs/images/dashboard_example.png`로 추가하세요.
 
 ### 7.2 화면 영역과 데이터 출처
 | 영역 | 표시 내용 | 데이터 출처 |
@@ -393,7 +416,8 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 | 인증서 키 | `/data/certs`, 600. git과 백업에서 제외 |
 | 외부 연동 | 읽기 전용. 호출 허용 목록(GET만). 쓰기 차단 규칙은 단위 테스트로 검증 |
 | 프롬프트 인젝션 | 수집 데이터를 데이터 영역으로 구분. 의심 패턴이 있으면 결과에 경고 표시 |
-| 방화벽 | ufw 기본 차단. 필요한 포트만 허용 |
+| 방화벽 | ufw 기본 차단(호스트 서비스용, SSH 등). **Docker가 공개한 18080·18081은 ufw를 거치지 않으므로** `17-docker-firewall.sh`로 DOCKER-USER 체인에서 `ALLOWED_CIDRS`만 허용 (D-22) |
+| MCP 서버 | 호스트 포트 없음. Bearer 토큰(`JENNIFER_MCP_TOKEN`, 자동 생성) 필수, Host 헤더 검사 |
 | 감사 | 조회, 작성, 승인, 반려, 설정 변경 기록 |
 
 **알려진 한계**: HTTPS 인증서가 자체 서명이므로 사용자 PC에 신뢰 등록이 필요합니다. 기본 인증은 임시 방식이며 RBAC와 통합 로그인(SSO, LDAP/AD)은 2차에 도입합니다.
@@ -451,6 +475,9 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 | 보고서 생성 | `scripts/collect-report.sh` |
 | 로그 | `scripts/53-logs.sh` |
 | 백업 | `scripts/90-backup.sh` |
+| Jennifer MCP 호출 로그 | `/data/logs/jennifer-mcp/jennifer-calls-YYYYMMDD.jsonl` |
+| 쓰기 메서드 점검 | `grep -h '"method"' /data/logs/jennifer-mcp/*.jsonl \| grep -v '"method": "GET"' \| wc -l` → 0 |
+| 허용 대역 방화벽 | `scripts/17-docker-firewall.sh` |
 
 ---
 
@@ -467,33 +494,38 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 |---|---|---|
 | 1 | 외부 통신 확인 | 매뉴얼 4장 |
 | 2 | Ubuntu·Docker·NVIDIA·기본 도구 패키지 번들 | `bundle-apt.sh` |
-| 3 | 호스트 점검과 준비 | `00-preflight.sh`, `10-prepare-host.sh`, `20-setup-storage.sh`, `30-install-nvidia-container-toolkit.sh` |
+| 3 | 호스트 점검과 준비 | `00-preflight.sh`, **`15-pin-host.sh`**(커널·드라이버 고정, 자동 업데이트 끔), `10-prepare-host.sh`, `20-setup-storage.sh`, `30-install-nvidia-container-toolkit.sh` |
 | 4 | 비밀값과 인증서 | `06-init-secrets.sh`, `07-gen-cert.sh` |
 | 5 | 앱 빌드와 모델 | `40-build-apps.sh`, `60-download-models.sh` |
 | 6 | 서비스 기동 | `50-deploy-services.sh` (`DEPLOY_MODE=online`) |
 | 7 | 검증 | `70-healthcheck.sh`, `85-test-llm.sh`, `collect-report.sh` |
-| 8 | 오프라인 번들 | `build-offline-caches.sh` |
-| 9 | 폐쇄망 전환 | `DEPLOY_MODE=offline`, IP `10.148.216.55`, NAT 차단 |
+| 8 | 오프라인 번들 | `build-offline-caches.sh` → `75-verify-offline-prep.sh` |
+| 9 | 폐쇄망 전환 | `DEPLOY_MODE=offline`, `WEB_BIND_IP=10.148.216.55`, `IMAGE_MODE=release` 권장, NAT 차단, `17-docker-firewall.sh` |
 | 10 | 외부 차단 확인 | `verify-offline.sh` |
-| 11 | 연동 샘플 수집 | 제니퍼 전수 GET 호출, ITSM·SIEM 샘플 |
+| 11 | 연동 샘플 수집 | 제니퍼 전수 GET 호출(`python -m jennifer_mcp.survey`), ITSM·SIEM 샘플 |
+| (재구축) | 새 PC에 번들 복원 | `restore-offline-caches.sh` (D-09) |
 
 ### 12.3 오프라인 자원
-| 종류 | 내용 |
-|---|---|
-| OS 패키지 | Ubuntu 기본 도구와 운영 도구(net-tools, netplan.io 등), Docker, NVIDIA 컨테이너 툴킷, Node.js, npm, 현재 커널 이미지(보관용) |
-| Python | wheelhouse (requirements.txt + requirements-extra.txt) |
-| npm | 대시보드 빌드용 캐시 |
-| Docker 이미지 | compose에 적힌 전체 이미지 + python 빌드 기반 이미지 |
-| 모델 | Qwen3 14B, BGE-M3, (선택) Qwen2.5-Coder 14B |
+`build-offline-caches.sh`가 `/backup/aiops-offline/<날짜>/`에 만듭니다. 호스트에 pip·node가 없어도 되도록 컨테이너 안에서 받습니다.
+
+| 종류 | 내용 | 파일 |
+|---|---|---|
+| OS 패키지 | Ubuntu 기본·운영 도구, Docker, NVIDIA 컨테이너 툴킷, 현재 커널 이미지(보관용) | `apt-repo.tgz` (bundle-apt.sh 결과) |
+| Python | API wheelhouse, **MCP 서버 wheelhouse**, **개발 도구 wheelhouse**(`config/dev-requirements.txt`) | `wheelhouse.tgz` |
+| npm | `package-lock.json` + 캐시 (`npm ci --offline`) | `npm-cache.tgz` |
+| Docker 이미지 | compose 전체(api, **jennifer-mcp** 포함) + 빌드 기반 `python:3.12-slim-bookworm`, **`node:22-alpine`**, `ubuntu:22.04` + `config/extra-images.txt`(mcpo, CUDA 점검용) | `images.tar`, `images.list` |
+| 모델 | Qwen3 14B, BGE-M3, Qwen2.5-Coder 14B | `ollama-models.tgz` |
+| 소스 | git 저장소 전체 이력 | `source.bundle` |
+
+대시보드는 `node:22-alpine` 컨테이너로 빌드하므로 Ubuntu 저장소의 Node.js 버전과 무관합니다(O-22 해소).
 
 ### 12.4 설치 후 설정 원칙
-- 커널과 NVIDIA 드라이버는 `apt-mark hold`로 고정합니다.
-- 자동 업데이트(unattended-upgrades)는 끕니다.
+- 커널과 NVIDIA 드라이버는 `apt-mark hold`로 고정합니다. 자동 업데이트(unattended-upgrades)는 끕니다. **인터넷망 설치 시작 직후** `15-pin-host.sh`로 수행합니다(설치 중 자동 업데이트 방지).
 - 코드 변경은 `IMAGE_MODE=dev`에서 컨테이너 재시작만으로 반영합니다. 릴리스 때는 `release`로 이미지를 고정합니다.
 - Docker의 `system prune -a`는 금지합니다. 기반 이미지가 지워지면 폐쇄망에서 재빌드할 수 없습니다.
 
 ### 12.5 설치 매뉴얼
-단계별 명령과 수동 설치 방법은 `AIOps_설치_운영_매뉴얼_v0_3_2.md`에 있습니다.
+단계별 명령과 수동 설치 방법은 `AIOps_설치_운영_매뉴얼_v0_3_3.md`에 있습니다.
 
 ---
 
@@ -504,7 +536,21 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 3. SIEM: 샘플 수집 → 검색 조건 확정 → 대용량 제한 적용
 4. 설정 파일에 매핑을 두고, 코드 수정은 최소로 합니다.
 5. 샘플은 마스킹 후 `tests/fixtures/`에 저장하고, 단위 테스트에 씁니다.
-6. 어댑터는 설치 직후 **꺼진 상태**로 두고, 차단 규칙 테스트와 샘플 확인이 끝나야 켭니다.
+6. 어댑터는 설치 직후 **꺼진 상태**로 두고, 차단 규칙 테스트와 샘플 확인이 끝나야 켭니다. Jennifer는 `config/jennifer-mcp.env`의 `JENNIFER_MCP_ENABLED=false`, API는 `JENNIFER_MCP_URL` 비움.
+
+### 13.1 폐쇄망 개발 방식 (D-24)
+- 인터넷망에서 이 저장소를 받아 설치하고, `build-offline-caches.sh`가 git 번들(`source.bundle`)을 만듭니다.
+- 폐쇄망에서는 번들로 내부 git 저장소를 만들어 이력을 이어 갑니다: `git clone source.bundle aiops-dev`.
+- 코딩 모델은 Qwen2.5-Coder 14B입니다. `IMAGE_MODE=dev`이면 Ollama가 `127.0.0.1:11434`로 열려 호스트의 VS Code(Continue 확장) 등에서 쓸 수 있습니다. 확장 `.vsix`와 VS Code `.deb`는 인터넷망에서 따로 받아 둡니다.
+- Python 의존성은 `dev-wheelhouse/`에서만 설치합니다: `pip install --no-index --find-links dev-wheelhouse ...`.
+- 폐쇄망에서 수정한 코드를 인터넷망 저장소로 다시 가져올 때는 `git bundle create`로 반출하고 반출 절차(기관 규정)를 따릅니다.
+
+### 13.2 추가 MCP 서버 반입 절차
+1. 인터넷망에서 `aiops/mcp-servers/<이름>/`에 서버 코드, `requirements.txt`, `Dockerfile`(기반 이미지 `python:3.12-slim-bookworm`), `tests/`를 만듭니다. Jennifer MCP를 틀로 씁니다.
+2. `build-offline-caches.sh`가 `mcp-servers/*/requirements.txt`를 자동으로 wheelhouse에 받습니다.
+3. `docker-compose.yml`에 서비스를 추가합니다(호스트 포트 없음, backend 네트워크, `required: false` env_file, Bearer 토큰).
+4. 반입물: 소스 폴더 + wheelhouse(또는 저장된 이미지 tar) + SHA256SUMS. 폐쇄망에서 `PIP_NO_INDEX=1`로 빌드합니다.
+5. 쓰기 경로가 있는 원천이면 Jennifer와 같이 GET 허용 목록·차단 규칙·단위 테스트를 먼저 만듭니다.
 
 ---
 
@@ -531,6 +577,12 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 | D-17 | SIEM 기본 시간 범위 | 장애 전후 ±30분 (관리자 변경 가능) | 확정 |
 | D-18 | 장애 감지와 비교 | 장애·이벤트 5분 신규 감지, VM·업무 하루 1회 전체 비교 | 확정 |
 | D-19 | 일반 채팅 사용자 조회 범위 | 전체 조회 (기관 규정 확인 후 유지) | 확정 (확인 필요) |
+| D-20 | Jennifer MCP 배치 | compose 서비스 `jennifer-mcp`, Streamable HTTP `/mcp`, 호스트 포트 없음, Bearer 인증. 이전 server.py 폐기 | 확정 (v4.1) |
+| D-21 | Ollama 적재 모델 수 | 2 (생성 1 + 임베딩 1). 컨텍스트 16k, KV q8_0 | 확정 (실측 O-26) |
+| D-22 | 허용 대역 제한 | DOCKER-USER 체인 (`17-docker-firewall.sh`). ufw만으로는 Docker 포트가 막히지 않음 | 확정 |
+| D-23 | Qwen3 추론 모드 | 분석·API 채팅은 `think: false` | 확정 |
+| D-24 | 폐쇄망 개발 | git 번들 + dev wheelhouse + Qwen2.5-Coder(dev 모드 루프백 포트) | 확정 |
+| D-25 | 설치 직후 자동 업데이트 | `15-pin-host.sh`를 인터넷망 설치 시작 직후 실행 | 확정 |
 
 ### 14.1 그 밖의 확정 사항
 - 메뉴 이름: 이미지 기준(홈, 장애분석, 이벤트분석, 탐지내역, 관찰대상, 이력관리, 설정) + 수동분석 추가
@@ -575,8 +627,13 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 | O-19 | 커널 버전 | 설치 시 `uname -r` 기록 | 실측 |
 | O-20 | 인증서 | 기관 CA 발급 여부 | 기관 확인 |
 | O-21 | 네트워크 정보 | DNS, 인터페이스명, VLAN, 허용 대역 | 현장 확인 |
-| O-22 | Node.js 버전 | Ubuntu 기본 저장소 버전이 낮을 수 있음 | 빌드 결과로 확인 |
+| O-22 | Node.js 버전 | ~~Ubuntu 기본 저장소 버전이 낮을 수 있음~~ → `node:22-alpine` 컨테이너 빌드로 해소 | 해소 (v4.1) |
 | O-23 | 1차 범위 확정 | 관찰대상 탐지, 수동분석 포함 여부 | 결정 (현재 포함으로 기록) |
+| O-24 | Jennifer 미확인 경로·파라미터 이름 | `/api/domain`, `/api/instance`, `/api/activeService/list`, `domain_id`·`start_time` 등 | Swagger + survey |
+| O-25 | Open WebUI MCP 등록 | 0.6.32에서 Bearer 키 전달, 사용자별 추적 방법 | 설치 후 확인 |
+| O-26 | VRAM 여유 | 16k × 병렬 2 + bge-m3 동시 적재 | `ollama ps`, `nvidia-smi` |
+| O-27 | 허용 대역 | `ALLOWED_CIDRS` 값 | 현장 확인 (O-21) |
+| O-28 | mcpo 이미지 | 버전 태그 없음(main), digest 기록 | 번들 생성 후 |
 
 ---
 
@@ -616,6 +673,9 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 | 기본 인증이 임시 방식 | 사용자 관리 부족 | RBAC·SSO는 2차에 도입 |
 | 커널·드라이버 자동 업데이트 | GPU 장애 | `apt-mark hold`, 자동 업데이트 끄기 |
 | 데이터 누적으로 디스크 부족 | 서비스 중단 | 경보(80%, 90%), 정책 확정 후 정리 |
+| Docker 포트가 ufw를 우회 | 허용 대역 밖 접근 | DOCKER-USER 규칙 (D-22) |
+| 폐쇄망 개발 중 모델 교체 | 분석 지연 | 개발은 운영 시간 외, 분석 큐 확인 |
+| 오프라인 자원 누락 | 폐쇄망에서 재빌드 불가 | `75-verify-offline-prep.sh`가 기반 이미지·wheelhouse·lock 파일까지 확인 |
 
 ---
 
@@ -641,9 +701,11 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 
 | 파일 | 내용 |
 |---|---|
-| `AIOps_설치_운영_매뉴얼_v0_3_2.md` | 설치·운영 단계별 매뉴얼 (실행 명령, 보고서 전달 방법) |
-| `aiops_integrated_dashboard_v0_3_2.zip` | 설치 패키지 (스크립트, 설정, 소스) |
-| `aiops_integrated_dashboard_v0_3_2_zip.sha256` | 패키지 체크섬 |
-| `docs/CHANGES_v0.3.2_KO.md` | v0.3.1 대비 변경 사항 |
+| `docs/AIOps_설치_운영_매뉴얼_v0_3_3.md` | 설치·운영 단계별 매뉴얼 (실행 명령, 보고서 전달 방법) |
+| `docs/REVIEW_v4_0_검토결과.md` | v4.0·v0.3.2 검토 결과 (틀린 부분, 추가 설치 항목) |
+| `aiops/` | 설치 패키지 v0.3.3 (스크립트, 설정, 소스) |
+| `aiops/mcp-servers/jennifer/` | Jennifer 읽기 전용 MCP 서버 v0.4.0 |
+| `aiops/docs/CHANGES_v0.3.3_KO.md` | v0.3.2 대비 변경 사항 |
+| `aiops/docs/CHANGES_v0.3.2_KO.md` | v0.3.1 대비 변경 사항 |
 | `docs/MANUAL_KO.md` | 패키지 안의 매뉴얼 사본 |
 | `images/dashboard_example.png` | 대시보드 예시 이미지 |

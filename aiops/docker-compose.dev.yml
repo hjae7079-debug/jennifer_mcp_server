@@ -6,3 +6,7 @@ services:
   worker:
     volumes:
       - ./apps/api/app:/app/app:ro
+  # 개발 모드에서만: 호스트의 코딩 도구(VS Code Continue, aider 등)가 Qwen2.5-Coder 를 쓰도록 루프백에만 공개
+  ollama:
+    ports:
+      - "127.0.0.1:11434:11434"

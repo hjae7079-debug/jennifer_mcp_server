@@ -62,6 +62,9 @@ services:
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
       OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}
       OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-2}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
+      OLLAMA_FLASH_ATTENTION: ${OLLAMA_FLASH_ATTENTION:-1}
+      OLLAMA_KV_CACHE_TYPE: ${OLLAMA_KV_CACHE_TYPE:-q8_0}
     volumes:
       - ${DATA_ROOT}/models/ollama:/root/.ollama
     networks: [backend]
@@ -80,6 +83,14 @@ services:
       WEBUI_AUTH: "true"
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?설치 스크립트 06-init-secrets.sh를 먼저 실행하세요}
       ENABLE_SIGNUP: ${OPEN_WEBUI_ENABLE_SIGNUP:-false}
+      # 폐쇄망: 외부(HuggingFace, 버전 확인, OpenAI) 접속 시도 차단
+      OFFLINE_MODE: "true"
+      HF_HUB_OFFLINE: "1"
+      ENABLE_OPENAI_API: "false"
+      ENABLE_OLLAMA_API: "true"
+      RAG_EMBEDDING_ENGINE: ${OPEN_WEBUI_RAG_EMBEDDING_ENGINE:-ollama}
+      RAG_EMBEDDING_MODEL: ${OPEN_WEBUI_RAG_EMBEDDING_MODEL:-bge-m3}
+      RAG_OLLAMA_BASE_URL: http://ollama:11434
     volumes:
       - ${DATA_ROOT}/open-webui:/app/backend/data
     depends_on:
@@ -91,7 +102,7 @@ services:
       context: ./apps/api
       args:
         PIP_NO_INDEX: ${PIP_NO_INDEX:-0}
-    image: aiops-api:0.3.2
+    image: aiops-api:${APP_VERSION:-0.3.3}
     container_name: aiops-api
     restart: unless-stopped
     environment:
@@ -101,6 +112,7 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       PRIMARY_MODEL: ${PRIMARY_MODEL:-qwen3:14b}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+      OLLAMA_NUM_CTX: ${OLLAMA_CONTEXT_LENGTH:-16384}
       DATA_MODE: ${DATA_MODE:-live}
       INSTITUTION_COUNT: ${INSTITUTION_COUNT:-30}
       BUSINESS_COUNT: ${BUSINESS_COUNT:-140}
@@ -132,7 +144,7 @@ services:
     networks: [backend]
 
   worker:
-    image: aiops-api:0.3.2
+    image: aiops-api:${APP_VERSION:-0.3.3}
     container_name: aiops-worker
     command: ["python", "-m", "app.worker"]
     restart: unless-stopped
@@ -142,6 +154,7 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       PRIMARY_MODEL: ${PRIMARY_MODEL:-qwen3:14b}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+      OLLAMA_NUM_CTX: ${OLLAMA_CONTEXT_LENGTH:-16384}
       DATA_MODE: ${DATA_MODE:-live}
       HISTORY_INCIDENTS_URL: ${HISTORY_INCIDENTS_URL:-}
       HISTORY_EVENTS_URL: ${HISTORY_EVENTS_URL:-}
@@ -161,6 +174,31 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks: [backend]
+
+  jennifer-mcp:
+    build:
+      context: ./mcp-servers/jennifer
+      args:
+        PIP_NO_INDEX: ${PIP_NO_INDEX:-0}
+    image: aiops-jennifer-mcp:${APP_VERSION:-0.3.3}
+    container_name: aiops-jennifer-mcp
+    restart: unless-stopped
+    # 뷰서버 토큰·활성화 스위치 (root 600). 없으면 비활성 상태로 기동
+    env_file:
+      - path: ./config/jennifer-mcp.env
+        required: false
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8791"
+      MCP_AUTH_TOKEN: ${JENNIFER_MCP_TOKEN:-}
+      MCP_ALLOWED_HOSTS: "jennifer-mcp:*,jennifer-mcp,localhost:*,127.0.0.1:*"
+      JENNIFER_SERVERS_FILE: /app/config/servers.json
+      JENNIFER_CALL_LOG_DIR: /logs
+      TZ: ${TZ:-Asia/Seoul}
+    volumes:
+      - ./config/jennifer-servers.json:/app/config/servers.json:ro
+      - ${DATA_ROOT}/logs/jennifer-mcp:/logs
+    networks: [backend]          # 호스트 포트 없음. api·open-webui 가 http://jennifer-mcp:8791/mcp 로 접근
 
   nginx:
     image: nginx:${NGINX_IMAGE_TAG:-1.28-alpine}

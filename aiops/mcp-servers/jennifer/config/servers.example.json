@@ -1,0 +1,8 @@
+{
+  "_comment": "토큰 값은 이 파일에 넣지 않습니다. token_env 에 적은 환경 변수(jennifer-mcp.env, root 600)에 넣습니다. 이 파일을 servers.json 으로 복사해 사용합니다.",
+  "servers": [
+    {"name": "internet", "label": "인터넷 업무", "url": "http://10.148.222.57:7900", "token_env": "JENNIFER_TOKEN_INTERNET", "timeout": 10, "min_interval": 0.2},
+    {"name": "admin",    "label": "행정 업무",   "url": "http://10.148.232.57:7900", "token_env": "JENNIFER_TOKEN_ADMIN",    "timeout": 10, "min_interval": 0.2},
+    {"name": "public",   "label": "대민 업무",   "url": "http://10.148.232.59:7900", "token_env": "JENNIFER_TOKEN_PUBLIC",   "timeout": 10, "min_interval": 0.2}
+  ]
+}

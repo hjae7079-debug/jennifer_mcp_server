@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# (v0.3.3) 80-package-offline.sh 번들용 이전 방식. 같은 PC 전환은 매뉴얼 6장(50-deploy-services.sh, DEPLOY_MODE=offline)을 따르세요.
 set -Eeuo pipefail
 [[ $EUID -eq 0 ]] || { echo "sudo로 실행하세요."; exit 1; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

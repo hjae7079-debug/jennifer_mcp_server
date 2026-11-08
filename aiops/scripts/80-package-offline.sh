@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# (v0.3.3) 이전 방식. 새 PC 재구축·폐쇄망 반입에는 build-offline-caches.sh + restore-offline-caches.sh 를 사용하세요.
 set -Eeuo pipefail
 [[ $EUID -eq 0 ]] || { echo "sudo로 실행하세요."; exit 1; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
