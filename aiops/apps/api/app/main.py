@@ -35,7 +35,7 @@ def source_status():
     j=JenniferMCPAdapter(); d=DifyWorkflowAdapter()
     return {'incidents':source('incident'),'events':source('event'),
       'institutions':{'configured':bool(os.getenv('INSTITUTIONS_API_URL','').strip()),'ok':None,'detail':'기관/업무 API 미설정 또는 KPI 매핑 미완료'},
-      'jennifer':{'configured':j.configured,'ok':None,'detail':'tools/list 검증 필요' if j.configured else 'MCP URL 미설정'},
+      'jennifer':{'configured':j.configured,'ok':None,'detail':'jennifer-mcp 컨테이너 연결됨; 뷰서버 경로 확정 필요' if j.configured else '비활성 (JENNIFER_MCP_URL 미설정)'},
       'dify':{'configured':d.configured,'ok':None,'detail':'Workflow 출력 매핑 검증 필요' if d.configured else 'Workflow URL/API Key 미설정'},
       'ollama':{'configured':True,'ok':None,'detail':MODEL},'embeddings':{'configured':True,'ok':None,'detail':EMBED_MODEL}}
 

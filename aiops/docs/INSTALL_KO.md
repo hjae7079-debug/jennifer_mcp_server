@@ -66,10 +66,17 @@ sudo bash scripts/85-test-llm.sh
 
 `HISTORY_POLL_SECONDS=300`(5분) 기본값으로 주기 조회합니다. 신규 장애는 우선순위 0, 이벤트는 1로 큐 처리합니다. 따라서 실제 지연은 폴링 주기와 API 응답시간에 따라 달라집니다.
 
-## 7. Jennifer MCP
-`.env`에서 `JENNIFER_MCP_URL`과 필요 시 `JENNIFER_MCP_TOKEN`을 설정합니다. Docker 안에서 호스트의 MCP 서버를 부를 때는 예를 들어 `http://host.docker.internal:8791/mcp`를 사용하며 Compose의 `extra_hosts` 설정이 필요할 수 있습니다(현 패키지의 실제 네트워크 구성을 확인).
+## 7. Jennifer 연동 (v0.3.3에서 갱신)
+제니퍼가 제공하는 MCP 서버는 없습니다. 플랫폼이 제니퍼 뷰서버 Open API(REST, `http://<뷰서버>:7900/api/...`, Bearer 토큰)를 직접 GET으로 호출합니다. `jennifer-mcp`는 이 패키지에 포함된 **자체 컨테이너**(`mcp-servers/jennifer/`)로, 그 REST 호출을 LLM 도구로 감싼 것입니다.
 
-연동 상태 화면에서 Jennifer 도구 스키마 탐색을 실행하면 `initialize`/`tools/list`만 시도합니다. **실제 Jennifer 서버에 연결해 tool schema와 반환 JSON을 확인한 상태가 아니므로 tool call은 구현하지 않았습니다.** 서버가 Streamable HTTP가 아니면 탐색이 실패할 수 있습니다. `tools/list`와 실제 응답을 확보한 후 읽기 전용 allowlist 및 인자 검증을 추가하세요.
+```
+API·Worker ─┐                         (자동 분석: 2차에 같은 클라이언트 코드로 뷰서버 직접 호출 예정)
+Open WebUI ─┴→ jennifer-mcp 컨테이너 ──GET /api/...──→ 제니퍼 뷰서버 3대 (:7900)
+```
+
+- 뷰서버 주소: `config/jennifer-servers.json`, 토큰: `config/jennifer-mcp.env` (root 600)
+- 활성화 절차와 전수 GET 호출(survey)은 `docs/MANUAL_KO.md` 7장
+- `.env`의 `JENNIFER_MCP_URL`은 `http://jennifer-mcp:8791/mcp` (호스트 `host.docker.internal` 사용 안 함)
 
 ## 8. Dify Workflow
 클라이언트는 포함되어 있지만 Dify 서버 자체는 이 패키지에서 설치하지 않습니다. Dify 공식 버전별 Compose와 모든 이미지/플러그인 의존성을 별도로 승인·다운로드·봉인해야 합니다.
@@ -96,7 +103,7 @@ sudo bash scripts/54-update-online.sh
 - API 18000은 loopback에만 바인딩합니다. Ollama, DB, Redis, ClickHouse 포트는 호스트에 공개하지 않습니다.
 - 18080/18081은 지정된 내부 IP에 바인딩합니다. 기관 방화벽에서 실제 사용자 대역만 허용하세요.
 - 현재 대시보드에 사용자별 RBAC/SSO와 TLS가 완성되어 있지 않습니다. 운영 반입 전에 인증/HTTPS(18443)와 보안 검토가 필요합니다.
-- Jennifer MCP tool calls, 실제 장애/이벤트/기관 API 매핑, Dify 서버/Workflow는 미완료입니다.
+- 제니퍼 Open API 경로·파라미터 확정(survey 후), 실제 장애/이벤트/기관 API 매핑, Dify 서버/Workflow는 미완료입니다.
 - 현 생성 환경에서는 GPU 추론, 이미지 다운로드, 폐쇄망 end-to-end를 실행하지 못했습니다. `TEST_REPORT_KO.md` 참조.
 
 
@@ -105,4 +112,4 @@ sudo bash scripts/54-update-online.sh
 - 오프라인 준비 시 주 분석 모델, 임베딩 모델, 개발 지원 모델을 모두 다운로드하도록 기본값을 변경했습니다.
 - `75-verify-offline-prep.sh`가 이미지·모델 확보 여부를 검사합니다.
 - 오프라인 번들에는 Ollama 모델 디렉터리의 별도 압축본을 포함합니다. 모델 크기에 따라 저장공간과 압축 시간이 크게 달라집니다.
-- Dify 서버 전체와 기관별 ITSM/Jennifer/SIEM MCP 서버 구현은 이 번들에 포함된 것으로 간주하지 않습니다. 실제 서버 버전·이미지·도구 스키마 확인 후 별도 반입 패키지로 준비해야 합니다.
+- Dify 서버 전체와 ITSM/SIEM 연동은 이 번들에 포함되지 않습니다. 제니퍼는 벤더 MCP 서버가 없으므로 자체 컨테이너(`mcp-servers/jennifer/`)가 뷰서버 Open API를 호출합니다(v0.3.3 포함).

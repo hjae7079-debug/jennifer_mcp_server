@@ -119,7 +119,7 @@ DNS, 인터페이스명, VLAN, 허용 대역은 폐쇄망 이전 시 현장에�
 | LLM 추론 | Ollama 0.12.6 | Qwen3 14B, BGE-M3 |
 | 채팅 UI | Open WebUI v0.6.32 | 일반 사용자 LLM 채팅 (로그인 필수) |
 | 심화 분석 | Dify (2차) | 다단계 워크플로 |
-| Jennifer 연동 | Jennifer MCP 서버 v0.4.0 (Python, MCP SDK 1.26, Streamable HTTP) | 읽기 전용 조회 도구. API·Open WebUI가 공용 (D-20) |
+| Jennifer 연동 | 자체 컨테이너 `jennifer-mcp` v0.4.0 (Python, MCP SDK 1.26) | 뷰서버 Open API(REST)를 GET으로 호출해 LLM 도구로 제공. **벤더 MCP 서버는 없음** (D-20) |
 
 ### 3.3 모델
 | 모델 | 용도 | 비고 |
@@ -192,6 +192,14 @@ Qwen2.5-Coder로 개발하는 동안에는 Qwen3가 내려가 분석이 느려�
 - 공식 명세의 GET 엔드포인트를 전수 호출하고, 파라미터 경계 케이스도 확인합니다.
 - **차단**: 모든 POST·PUT·DELETE, `/api-v2/manage/*`, `/restapi/*`, 사용자 목록(`/api/auth/userlist*`).
 - 조회 전용 토큰은 발급받을 수 없어 **현재 토큰으로 진행**합니다. 그래서 코드 차단 규칙을 단위 테스트로 검증하고, 모든 호출을 로그로 남깁니다.
+
+**호출 구조**: 제니퍼에는 별도 MCP 서버가 없습니다. 플랫폼이 뷰서버 Open API(`http://<뷰서버>:7900/api/...`)를 Bearer 토큰으로 직접 GET 호출합니다.
+```
+Open WebUI(채팅) ─┐
+aiops-api        ─┴→ jennifer-mcp (자체 컨테이너: 차단 규칙·격리·로그) ──REST GET──→ 뷰서버 3대 :7900
+Worker(자동 분석) ──→ 같은 클라이언트 코드(jennifer_mcp.client)로 뷰서버 REST 직접 호출 (로드맵 3·6단계에서 연결)
+```
+자동 분석은 MCP를 거칠 필요가 없으므로 같은 클라이언트 라이브러리를 Worker가 직접 씁니다. MCP는 LLM이 도구로 조회할 때(채팅, 심화 분석)에만 씁니다. 어느 경로든 차단 규칙·서버별 격리·호출 로그는 같은 코드가 적용합니다.
 
 **구현 (v0.4.0, `aiops/mcp-servers/jennifer/`)**: 위 제약을 MCP 도구에서 코드로 강제합니다. 지표 1개 검사, 분 단위 정렬, `responseTime` 정렬 거부, transaction 60초 제한, clientIp·clientId 제거, 건수·크기 제한, 모든 호출 JSONL 로그. 경로·파라미터 이름은 `config/endpoints.json`에 두고 Swagger·전수 호출 결과로 확정합니다(미확인 항목 `verified: false`, O-24). 이전 버전(server.py)은 경로·전송 방식이 맞지 않아 폐기했습니다.
 
@@ -577,7 +585,7 @@ jennifer_instance_map (VM ↔ Jennifer 인스턴스, 매칭 방식·신뢰도)
 | D-17 | SIEM 기본 시간 범위 | 장애 전후 ±30분 (관리자 변경 가능) | 확정 |
 | D-18 | 장애 감지와 비교 | 장애·이벤트 5분 신규 감지, VM·업무 하루 1회 전체 비교 | 확정 |
 | D-19 | 일반 채팅 사용자 조회 범위 | 전체 조회 (기관 규정 확인 후 유지) | 확정 (확인 필요) |
-| D-20 | Jennifer MCP 배치 | compose 서비스 `jennifer-mcp`, Streamable HTTP `/mcp`, 호스트 포트 없음, Bearer 인증. 이전 server.py 폐기 | 확정 (v4.1) |
+| D-20 | Jennifer 연동 방식 | 벤더 MCP 서버 없음 → 뷰서버 Open API(REST) 직접 GET. LLM 도구용 자체 컨테이너 `jennifer-mcp`(Streamable HTTP `/mcp`, 호스트 포트 없음, Bearer), Worker는 같은 클라이언트 코드로 직접 호출. 이전 server.py 폐기 | 확정 (v4.1) |
 | D-21 | Ollama 적재 모델 수 | 2 (생성 1 + 임베딩 1). 컨텍스트 16k, KV q8_0 | 확정 (실측 O-26) |
 | D-22 | 허용 대역 제한 | DOCKER-USER 체인 (`17-docker-firewall.sh`). ufw만으로는 Docker 포트가 막히지 않음 | 확정 |
 | D-23 | Qwen3 추론 모드 | 분석·API 채팅은 `think: false` | 확정 |

@@ -6,11 +6,10 @@
 - 이벤트 이력 API URL, 이벤트 ID/기관명/제목/발생시각/상태 필드
 - 각 API의 조회 제한, 최대 호출 빈도, 타임아웃, 오류/재시도 정책
 
-## Jennifer MCP
-- 실제 MCP URL, 인증 헤더, protocol version, Streamable HTTP/SSE/legacy transport 여부
-- `tools/list` 결과 원본과 각 read-only 도구의 `inputSchema`
-- 실제 호출의 request/response JSON 샘플
-- APM에서 먼저 연결할 항목과 호출 제한/비용. 스키마 검증 전 `tools/call`을 임의로 구현하지 않음
+## Jennifer (뷰서버 Open API 직접 호출, 벤더 MCP 서버 없음)
+- 뷰서버 3대 Open API 경로·파라미터 이름 확정 (Swagger + survey, `mcp-servers/jennifer/config/endpoints.json`의 `verified: false` 항목)
+- 서버별 토큰 발급(현재 토큰 사용, 조회 전용 토큰 불가)과 호출 제한
+- 응답 래퍼 키·건수 확인 (샘플)
 
 ## Dify Workflow
 - 승인된 Dify 버전과 모든 이미지/플러그인/의존성 목록
@@ -24,5 +23,5 @@
 - 백업 암호화 및 복구 리허설
 
 - Dify 서버 이미지 및 플러그인 의존성은 별도 버전 고정·반입 필요.
-- Jennifer 실제 tool 호출은 서버의 tools/list 및 응답 스키마 검증 후 구현.
+- Jennifer는 자체 컨테이너가 뷰서버 Open API를 GET으로 호출. 경로 확정 전 비활성.
 - ITSM MCP의 실제 API 필드, 고유 ID, 변경 감지/재수집 파라미터는 기관 API 확인 후 어댑터 확정.

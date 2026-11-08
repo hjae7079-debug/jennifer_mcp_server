@@ -1,4 +1,4 @@
-# AI-Ops 통합분석 플랫폼 (PoC) — 설치 패키지 + Jennifer MCP 서버
+# AI-Ops 통합분석 플랫폼 (PoC) — 설치 패키지 + Jennifer 연동
 
 폐쇄망 GPU PC(Ubuntu 24.04.5, RTX 5080)에서 로컬 LLM(Qwen3 14B)으로 ITSM·Jennifer·SIEM 데이터를 분석하는 플랫폼의 설치 패키지입니다.
 **인터넷망에서 이 저장소를 받아 설치·번들을 만든 뒤, 같은 PC를 폐쇄망으로 옮깁니다.**
@@ -9,7 +9,7 @@
 | `docs/AIOps_설치_운영_매뉴얼_v0_3_3.md` | 설치·운영 매뉴얼 (최신) |
 | `docs/REVIEW_v4_0_검토결과.md` | v4.0·v0.3.2에서 틀린 부분과 인터넷망에서 더 받아야 할 것 |
 | `aiops/` | 설치 패키지 v0.3.3 (`/opt/aiops`로 연결해 사용) |
-| `aiops/mcp-servers/jennifer/` | Jennifer APM 읽기 전용 MCP 서버 v0.4.0 (이전 `server.py` 대체) |
+| `aiops/mcp-servers/jennifer/` | 제니퍼 뷰서버 Open API(REST)를 GET으로 호출하는 자체 컨테이너 v0.4.0. LLM용 MCP 도구 + Worker용 클라이언트 라이브러리 (제니퍼 벤더 MCP 서버는 없음) |
 
 ## 흐름
 
