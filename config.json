@@ -1,0 +1,43 @@
+{
+  "servers": {
+    "internet": {
+      "title": "인터넷 업무",
+      "aliases": ["인터넷", "인터넷업무", "internet", "inet"],
+      "url": "http://10.148.222.57:7900",
+      "timeout": 15
+    },
+    "admin": {
+      "title": "행정 업무",
+      "aliases": ["행정", "행정업무", "admin"],
+      "url": "http://10.148.232.57:7900",
+      "timeout": 15
+    },
+    "public": {
+      "title": "대민 업무",
+      "aliases": ["대민", "대민업무", "public"],
+      "url": "http://10.148.232.59:7900",
+      "timeout": 15
+    }
+  },
+  "timezone": "Asia/Seoul",
+  "min_interval_sec": 0.3,
+  "max_calls_per_min": 120,
+  "max_window_minutes": 1440,
+  "max_rows": 30,
+  "max_output_chars": 16000,
+  "cache_seconds": 600,
+  "log_retention_days": 365,
+  "drop_fields": ["clientIp", "clientId", "client_ip", "client_id"],
+  "http": {
+    "bind": "127.0.0.1",
+    "port": 8791,
+    "path": "/mcp",
+    "require_token": true,
+    "stateless": true,
+    "allow_ips": [],
+    "allowed_hosts": [],
+    "ssl_certfile": "",
+    "ssl_keyfile": "",
+    "_help": "AIOps(.env JENNIFER_MCP_URL=http://host.docker.internal:8791/mcp) 컨테이너에서 접속하려면 bind 를 도커 브리지 IP(예 172.17.0.1)로, allow_ips 에 172.16.0.0/12, allowed_hosts 에 host.docker.internal:8791 을 넣는다. 같은 PC 의 Hermes·test_client 만 쓰면 127.0.0.1 그대로."
+  }
+}

@@ -1,0 +1,27 @@
+# Jennifer MCP 서버 (Streamable HTTP) — systemd 서비스 (install.sh 가 등록)
+#   상태: systemctl status jennifer-mcp / journalctl -u jennifer-mcp -f / curl http://127.0.0.1:8791/healthz
+[Unit]
+Description=JENNIFER APM MCP server (read-only, Streamable HTTP)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jennifer-mcp
+WorkingDirectory=/opt/jennifer_mcp_server
+ExecStart=/opt/jennifer_mcp_server/.venv/bin/python /opt/jennifer_mcp_server/server.py --http
+# always: kill <PID> 로 재시작 가능 (nsims_mcp 실측과 같은 설정)
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=TZ=Asia/Seoul
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/jennifer_mcp_server
+
+[Install]
+WantedBy=multi-user.target

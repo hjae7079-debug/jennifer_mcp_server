@@ -1,0 +1,17 @@
+# 비밀값·이 PC 전용 설정 (절대 커밋 금지)
+tokens.json
+secrets.json
+secrets.json.tmp
+config.local.json*
+# 실행 산출물
+logs/
+.venv/
+__pycache__/
+*.pyc
+*.tmp
+# 설치 파일 (download_wheels.sh 로 받음, 반입 zip 에 포함)
+wheels/
+# 전수 호출 샘플 (실제 응답 — 마스킹했어도 서버에만. 반출할 것만 골라 tests/fixtures 로)
+samples/
+# Jennifer 명세 원본 (내부 자료 → 저장소에 올리지 않음, 반입 zip 으로)
+spec/*.json

@@ -1,0 +1,51 @@
+{
+  "_help": "도구가 부르는 Jennifer Open API 경로와 파라미터 이름. 코드 수정 없이 여기서 고친다 (폐쇄망에서 명세·실측과 다르면). params 의 왼쪽 = 도구 내부 이름, 오른쪽 = 실제 API 파라미터 이름. verified=false 는 실서버로 아직 확인 안 한 항목 (survey.py 결과로 확인 후 true).",
+  "domains": {
+    "path": "/api/domain",
+    "params": {},
+    "verified": false
+  },
+  "instances": {
+    "path": "/api/instance",
+    "params": {"domain": "domain_id"},
+    "verified": false
+  },
+  "metric_names": {
+    "path": "/api/metrics",
+    "params": {},
+    "verified": false
+  },
+  "realtime_instance": {
+    "path": "/api/realtime/instance",
+    "params": {"domain": "domain_id", "instance": "instance_id"},
+    "note": "실측 4~5초. 업무에 연결된 인스턴스만 부를 것",
+    "verified": false
+  },
+  "instance_metrics": {
+    "path": "/api/dbmetrics/instance",
+    "params": {"domain": "domain_id", "instance": "instance_id", "metric": "metrics",
+               "start": "start_time", "end": "end_time", "interval": "interval"},
+    "note": "지표는 호출당 1개만 (2개면 500, 실측)",
+    "verified": false
+  },
+  "status": {
+    "path": "/api/status/{kind}",
+    "kinds": ["application", "sql", "externalcall", "error"],
+    "params": {"domain": "domain_id", "start": "start_time", "end": "end_time",
+               "sort": "sort_by_metrics", "count": "count"},
+    "note": "시작·끝은 분 정시(초 0). sort 는 /api/metrics 에 있는 이름만 (responseTime → 500 실측). instance_id 필터는 0건(실측)이라 넣지 않음",
+    "verified": false
+  },
+  "transactions": {
+    "path": "/api/transaction/time",
+    "params": {"domain": "domain_id", "start": "start_time", "end": "end_time", "instance": "instance_id"},
+    "note": "구간 60초 이하, 1분 약 7,280건(3.9MB) 실측 → 원시 대량 수집 금지",
+    "verified": false
+  },
+  "transaction_profile": {
+    "path": "/api/transaction/txid",
+    "params": {"domain": "domain_id", "txid": "txid", "time": "time"},
+    "note": "time 에 트랜잭션 끝 시각(endTime) 필요. 응답의 instanceOid=0 은 서버 버그 → instanceId 사용",
+    "verified": false
+  }
+}

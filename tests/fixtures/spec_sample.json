@@ -1,0 +1,27 @@
+{
+  "swagger": "2.0",
+  "info": {"title": "시험용 가짜 명세 (실제 Jennifer 명세 아님)", "version": "test"},
+  "basePath": "/",
+  "paths": {
+    "/api/domain": {"get": {"summary": "도메인 목록", "tags": ["domain"], "parameters": []}},
+    "/api/instance": {"get": {"summary": "인스턴스 목록", "tags": ["instance"],
+      "parameters": [{"name": "domain_id", "in": "query", "required": true, "type": "integer"}]}},
+    "/api/metrics": {"get": {"summary": "지표 이름", "parameters": []}},
+    "/api/dbmetrics/instance": {"get": {"summary": "인스턴스 지표", "parameters": [
+      {"name": "domain_id", "in": "query", "required": true, "type": "integer"},
+      {"name": "instance_id", "in": "query", "required": true, "type": "integer"},
+      {"name": "metrics", "in": "query", "required": true, "type": "string"},
+      {"name": "start_time", "in": "query", "required": true, "type": "integer"},
+      {"name": "end_time", "in": "query", "required": true, "type": "integer"}]}},
+    "/api/status/{kind}": {"get": {"summary": "구간 집계", "parameters": [
+      {"name": "kind", "in": "path", "required": true, "type": "string"},
+      {"name": "domain_id", "in": "query", "required": true, "type": "integer"}]}},
+    "/api/thrown": {"get": {"summary": "Java Date 시험", "parameters": [
+      {"name": "mystery", "in": "query", "required": true, "type": "string"}]}},
+    "/api/auth/userlist": {"get": {"summary": "사용자 목록 (차단 대상)", "parameters": []}},
+    "/api-v2/manage/agent": {"get": {"summary": "관리 (차단 대상)", "parameters": []},
+                              "post": {"summary": "관리 쓰기"}},
+    "/restapi/legacy": {"get": {"summary": "구 API (차단 대상)", "parameters": []}},
+    "/api/event": {"post": {"summary": "이벤트 쓰기 (GET 아님 → 목록에 없어야 함)"}}
+  }
+}
