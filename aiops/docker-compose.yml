@@ -1,0 +1,221 @@
+name: aiops
+services:
+  postgres:
+    image: pgvector/pgvector:${PGVECTOR_IMAGE_TAG:-pg16}
+    container_name: aiops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?설치 스크립트 06-init-secrets.sh를 먼저 실행하세요}
+    volumes:
+      - ${DATA_ROOT}/postgresql:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_IMAGE_TAG:-24.8}
+    container_name: aiops-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?설치 스크립트 06-init-secrets.sh를 먼저 실행하세요}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - ${DATA_ROOT}/clickhouse:/var/lib/clickhouse
+      - ${DATA_ROOT}/logs/clickhouse:/var/log/clickhouse-server
+      - ${BACKUP_ROOT}/aiops-install/clickhouse:/var/lib/clickhouse/backups
+      - ./config/clickhouse-backup.xml:/etc/clickhouse-server/config.d/backup.xml:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --user \"$${CLICKHOUSE_USER}\" --password \"$${CLICKHOUSE_PASSWORD}\" --query 'SELECT 1'"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+
+  redis:
+    image: redis:${REDIS_IMAGE_TAG:-7.4-alpine}
+    container_name: aiops-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    volumes:
+      - ${DATA_ROOT}/redis:/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ollama:
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.12.6}
+    container_name: aiops-ollama
+    restart: unless-stopped
+    gpus: all
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-2}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
+      OLLAMA_FLASH_ATTENTION: ${OLLAMA_FLASH_ATTENTION:-1}
+      OLLAMA_KV_CACHE_TYPE: ${OLLAMA_KV_CACHE_TYPE:-q8_0}
+    volumes:
+      - ${DATA_ROOT}/models/ollama:/root/.ollama
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-v0.6.32}
+    container_name: aiops-open-webui
+    restart: unless-stopped
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_AUTH: "true"
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?설치 스크립트 06-init-secrets.sh를 먼저 실행하세요}
+      ENABLE_SIGNUP: ${OPEN_WEBUI_ENABLE_SIGNUP:-false}
+      # 폐쇄망: 외부(HuggingFace, 버전 확인, OpenAI) 접속 시도 차단
+      OFFLINE_MODE: "true"
+      HF_HUB_OFFLINE: "1"
+      ENABLE_OPENAI_API: "false"
+      ENABLE_OLLAMA_API: "true"
+      RAG_EMBEDDING_ENGINE: ${OPEN_WEBUI_RAG_EMBEDDING_ENGINE:-ollama}
+      RAG_EMBEDDING_MODEL: ${OPEN_WEBUI_RAG_EMBEDDING_MODEL:-bge-m3}
+      RAG_OLLAMA_BASE_URL: http://ollama:11434
+    volumes:
+      - ${DATA_ROOT}/open-webui:/app/backend/data
+    depends_on:
+      ollama: {condition: service_started}
+    networks: [backend]          # 호스트 포트 없음. Nginx 18081(TLS)로만 접근
+
+  api:
+    build:
+      context: ./apps/api
+      args:
+        PIP_NO_INDEX: ${PIP_NO_INDEX:-0}
+    image: aiops-api:${APP_VERSION:-0.3.3}
+    container_name: aiops-api
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://ollama:11434
+      PRIMARY_MODEL: ${PRIMARY_MODEL:-qwen3:14b}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+      OLLAMA_NUM_CTX: ${OLLAMA_CONTEXT_LENGTH:-16384}
+      DATA_MODE: ${DATA_MODE:-live}
+      INSTITUTION_COUNT: ${INSTITUTION_COUNT:-30}
+      BUSINESS_COUNT: ${BUSINESS_COUNT:-140}
+      INSTITUTION_COUNT_ESTIMATE: ${INSTITUTION_COUNT_ESTIMATE:-true}
+      BUSINESS_COUNT_ESTIMATE: ${BUSINESS_COUNT_ESTIMATE:-true}
+      HISTORY_INCIDENTS_URL: ${HISTORY_INCIDENTS_URL:-}
+      HISTORY_EVENTS_URL: ${HISTORY_EVENTS_URL:-}
+      HISTORY_API_TOKEN: ${HISTORY_API_TOKEN:-}
+      HISTORY_INCIDENTS_TOKEN: ${HISTORY_INCIDENTS_TOKEN:-}
+      HISTORY_EVENTS_TOKEN: ${HISTORY_EVENTS_TOKEN:-}
+      HISTORY_API_TIMEOUT: ${HISTORY_API_TIMEOUT:-15}
+      HISTORY_POLL_SECONDS: ${HISTORY_POLL_SECONDS:-300}
+      INSTITUTIONS_API_URL: ${INSTITUTIONS_API_URL:-}
+      JENNIFER_MCP_URL: ${JENNIFER_MCP_URL:-}
+      JENNIFER_MCP_TOKEN: ${JENNIFER_MCP_TOKEN:-}
+      JENNIFER_MCP_PROTOCOL_VERSION: ${JENNIFER_MCP_PROTOCOL_VERSION:-2025-06-18}
+      DIFY_BASE_URL: ${DIFY_BASE_URL:-}
+      DIFY_WORKFLOW_API_KEY: ${DIFY_WORKFLOW_API_KEY:-}
+      DIFY_USER_LABEL: ${DIFY_USER_LABEL:-aiops-local}
+      ANALYSIS_PROVIDER: ${ANALYSIS_PROVIDER:-ollama}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres: {condition: service_healthy}
+      ollama: {condition: service_started}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${API_PORT:-18000}:8000"   # 관리자 SSH 터널 전용
+    networks: [backend]
+
+  worker:
+    image: aiops-api:${APP_VERSION:-0.3.3}
+    container_name: aiops-worker
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://ollama:11434
+      PRIMARY_MODEL: ${PRIMARY_MODEL:-qwen3:14b}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+      OLLAMA_NUM_CTX: ${OLLAMA_CONTEXT_LENGTH:-16384}
+      DATA_MODE: ${DATA_MODE:-live}
+      HISTORY_INCIDENTS_URL: ${HISTORY_INCIDENTS_URL:-}
+      HISTORY_EVENTS_URL: ${HISTORY_EVENTS_URL:-}
+      HISTORY_API_TOKEN: ${HISTORY_API_TOKEN:-}
+      HISTORY_INCIDENTS_TOKEN: ${HISTORY_INCIDENTS_TOKEN:-}
+      HISTORY_EVENTS_TOKEN: ${HISTORY_EVENTS_TOKEN:-}
+      HISTORY_API_TIMEOUT: ${HISTORY_API_TIMEOUT:-15}
+      HISTORY_POLL_SECONDS: ${HISTORY_POLL_SECONDS:-300}
+      DIFY_BASE_URL: ${DIFY_BASE_URL:-}
+      DIFY_WORKFLOW_API_KEY: ${DIFY_WORKFLOW_API_KEY:-}
+      DIFY_USER_LABEL: ${DIFY_USER_LABEL:-aiops-local}
+      ANALYSIS_PROVIDER: ${ANALYSIS_PROVIDER:-ollama}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres: {condition: service_healthy}
+      ollama: {condition: service_started}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [backend]
+
+  jennifer-mcp:
+    build:
+      context: ./mcp-servers/jennifer
+      args:
+        PIP_NO_INDEX: ${PIP_NO_INDEX:-0}
+    image: aiops-jennifer-mcp:${APP_VERSION:-0.3.3}
+    container_name: aiops-jennifer-mcp
+    restart: unless-stopped
+    # 뷰서버 토큰·활성화 스위치 (root 600). 없으면 비활성 상태로 기동
+    env_file:
+      - path: ./config/jennifer-mcp.env
+        required: false
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8791"
+      MCP_AUTH_TOKEN: ${JENNIFER_MCP_TOKEN:-}
+      MCP_ALLOWED_HOSTS: "jennifer-mcp:*,jennifer-mcp,localhost:*,127.0.0.1:*"
+      JENNIFER_SERVERS_FILE: /app/config/servers.json
+      JENNIFER_CALL_LOG_DIR: /logs
+      TZ: ${TZ:-Asia/Seoul}
+    volumes:
+      - ./config/jennifer-servers.json:/app/config/servers.json:ro
+      - ${DATA_ROOT}/logs/jennifer-mcp:/logs
+    networks: [backend]          # 호스트 포트 없음. api·open-webui 가 http://jennifer-mcp:8791/mcp 로 접근
+
+  nginx:
+    image: nginx:${NGINX_IMAGE_TAG:-1.28-alpine}
+    container_name: aiops-dashboard
+    restart: unless-stopped
+    ports:
+      - "${WEB_BIND_IP:-127.0.0.1}:${WEB_PORT:-18080}:18080"    # 대시보드 HTTPS
+      - "${WEB_BIND_IP:-127.0.0.1}:${WEBUI_PORT:-18081}:18081"  # Open WebUI HTTPS
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./apps/web/dist:/usr/share/nginx/html:ro
+      - ${DATA_ROOT}/certs:/etc/nginx/certs:ro
+    depends_on:
+      api: {condition: service_started}
+      open-webui: {condition: service_started}
+    networks: [backend]
+
+networks:
+  backend:
+    driver: bridge

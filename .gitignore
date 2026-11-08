@@ -1,0 +1,13 @@
+# 비밀값·환경별 파일
+aiops/.env
+aiops/config/jennifer-mcp.env
+aiops/apps/api/wheelhouse/*.whl
+aiops/mcp-servers/*/wheelhouse/*.whl
+aiops/apps/web/node_modules/
+aiops/apps/web/dist/
+aiops/offline-bundle/
+__pycache__/
+*.pyc
+.pytest_cache/
+aiops/dev-wheelhouse/
+aiops/.npm-cache/

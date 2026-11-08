@@ -1,0 +1,4 @@
+# 폐쇄망 반입용: build-offline-caches.sh 가 이 목록으로 wheelhouse 를 만듭니다.
+mcp==1.26.0
+uvicorn==0.34.2
+anyio>=4.5

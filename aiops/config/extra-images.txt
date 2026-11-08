@@ -1,0 +1,6 @@
+# build-offline-caches.sh 가 compose 이미지와 함께 저장할 추가 이미지 (한 줄에 하나)
+# Open WebUI 0.6.32 의 MCP 직접 연결이 안 될 때 쓰는 MCP→OpenAPI 프록시 (O-12 대비)
+# mcpo 는 버전 태그가 없어 main 을 받습니다. 번들 생성 후 images.list·digest 를 기록하세요
+ghcr.io/open-webui/mcpo:main
+# GPU 수동 점검용 (매뉴얼 8.1)
+nvidia/cuda:12.8.1-base-ubuntu24.04
