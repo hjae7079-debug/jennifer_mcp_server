@@ -10,7 +10,7 @@ AIOps 통합분석 대시보드 패키지 v0.3.3 파일 목록
 - apps/api/app/worker.py: 이력 폴링 및 장애 우선 분석 Worker
 - apps/api/app/analyzer.py: Ollama Qwen3 분석, BGE-M3 임베딩, Dify Workflow 호출
 - apps/api/app/adapters/history.py: 장애/이벤트 API의 설정형 어댑터 및 엄격한 JSON 정규화
-- apps/api/app/adapters/jennifer_mcp.py: Jennifer MCP initialize/tools/list 탐색 전용 어댑터
+- apps/api/app/adapters/jennifer_mcp.py: 자체 jennifer-mcp 컨테이너의 도구 목록 확인용 어댑터 (뷰서버 호출은 mcp-servers/jennifer)
 - apps/api/app/adapters/dify.py: Dify Workflow API 어댑터
 - apps/api/tests/: 어댑터 및 분석 파싱 테스트
 

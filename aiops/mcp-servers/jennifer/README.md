@@ -2,6 +2,14 @@
 
 AI-Ops 통합분석 플랫폼(총정리본 v4.1)의 Jennifer 연동 계층입니다. 이전 `server.py / jennifer_tools.py` 버전을 대체합니다.
 
+> 제니퍼에는 벤더가 제공하는 MCP 서버가 없습니다. 이 서버는 GPU PC에서 컨테이너로 돌면서 **제니퍼 뷰서버 Open API(REST, `:7900/api/...`)를 Bearer 토큰으로 GET 호출**하고, 그 결과를 LLM이 쓸 수 있는 MCP 도구로 제공합니다.
+> MCP가 필요 없는 자동 분석(Worker)은 `jennifer_mcp.client.JenniferClient`를 라이브러리로 직접 써서 뷰서버를 호출하면 됩니다(같은 차단 규칙·격리·로그 적용).
+
+```
+Open WebUI / aiops-api ──MCP /mcp──→ [jennifer-mcp 컨테이너] ──HTTP GET + Bearer──→ 뷰서버 10.148.222.57 / .232.57 / .232.59 :7900
+Worker(자동 분석)      ──라이브러리 호출──┘
+```
+
 ## 이전 버전과 달라진 점
 
 | 이전 (v1.0.0) | 지금 (v0.4.0) | 이유 |

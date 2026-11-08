@@ -7,7 +7,7 @@
 - [ ] TLS 인증서 및 HTTPS 18443 구성
 - [ ] 이미지 digest/SBOM/CVE/라이선스 검토
 - [ ] API 토큰 최소 권한/읽기 전용
-- [ ] Jennifer tool schema 검증 전 tool call 금지
+- [ ] 제니퍼 Open API 차단 규칙 단위 테스트 통과 전 `JENNIFER_MCP_ENABLED=false` 유지 (뷰서버는 GET만 호출)
 - [ ] 수집 데이터 prompt injection 방어 검토
 - [ ] 백업 암호화 및 복구 테스트
 - [ ] 로그에서 비밀번호/토큰/민감정보 마스킹

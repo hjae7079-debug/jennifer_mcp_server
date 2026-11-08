@@ -53,7 +53,7 @@ sudo bash scripts/95-install-backup-timer.sh
 - 18000, 11434, 5432, 6379, 8123/9000은 직접 공개하지 않음
 - 현재 앱은 사용자별 RBAC/SSO/TLS를 완성하지 않았으므로 기관 인증·HTTPS 설정 전 운영 배포 금지
 - 장애/이벤트 API 토큰은 읽기 전용 최소 권한을 사용
-- Jennifer MCP tool schema를 검증하기 전 도구를 호출하지 않음
+- 제니퍼 뷰서버 Open API는 GET만 호출(자체 jennifer-mcp 컨테이너의 차단 규칙). 전수 호출(survey)로 경로를 확정하기 전에는 `JENNIFER_MCP_ENABLED=false` 유지
 
 ## 장애 대응 순서
 1. `docker compose ps`

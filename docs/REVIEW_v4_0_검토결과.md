@@ -42,6 +42,7 @@
 | E-16 | 총정리본 12.3 "Node.js, npm (OS 패키지)" / O-22 | 대시보드는 `node:22-alpine` 컨테이너로 빌드하므로 Ubuntu nodejs 버전과 무관 | O-22 해소, 문구 수정 |
 | E-17 | 총정리본 2.2 "Ollama 호스트 포트 없음" vs 폐쇄망에서 Qwen Coder로 개발 | 포트가 없으면 호스트의 코딩 도구가 Ollama에 접근할 수 없음 | `IMAGE_MODE=dev`에서만 `127.0.0.1:11434` 공개 |
 | E-18 | `README.md` | 제목·절차가 v0.3.1 기준 | v0.3.3로 갱신 |
+| E-20 | v0.3.2 문서 (OPEN-ITEMS, INSTALL 7장, README, 연동 상태 화면) | "Jennifer MCP 실서버의 tool schema 확인 후 호출" — 제니퍼에는 MCP 서버가 없음 | 뷰서버 Open API 직접 호출로 문구 수정 |
 | E-19 | 오프라인 경로 2개 | `80-package-offline`+`55-offline-install`과 `build-offline-caches`가 공존, 형식이 다름 | `build-offline-caches` + `restore-offline-caches`로 일원화, 80/55는 이전 방식으로 표시 |
 
 ---
@@ -74,6 +75,8 @@
 ## 3. Jennifer MCP 서버 v0.4.0 (새로 작성)
 
 `aiops/mcp-servers/jennifer/` — 자세한 내용은 같은 폴더의 `README.md`.
+
+> **제니퍼에는 벤더가 제공하는 MCP 서버가 없습니다.** 이 컨테이너는 우리가 만든 것으로, 제니퍼 뷰서버 Open API(REST, :7900)를 Bearer 토큰으로 GET 호출하고 결과를 LLM 도구로 제공합니다. v0.3.2 문서 일부(OPEN-ITEMS, INSTALL 7장, README)는 "Jennifer MCP 실서버의 tools/list 확인"처럼 벤더 MCP 서버가 있는 것으로 적혀 있어 함께 고쳤습니다(E-20).
 
 - Streamable HTTP `/mcp` (aiops-api 어댑터, Open WebUI 0.6.31+ 기본 MCP 지원과 맞음), stdio 겸용
 - 서버 3대(인터넷·행정·대민) 각각 타임아웃·토큰·호출 간격 분리, 응답 없으면 "조회 불가(서버명, 사유)" (D-10)

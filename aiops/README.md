@@ -23,8 +23,7 @@ Ubuntu 24.04 폐쇄망 GPU PC용 React 대시보드와 초기 설치·오프라�
 - FastAPI + 별도 Worker 컨테이너
 - Open WebUI는 별도 포트/UI
 - Dify Workflow API client 포함(단, Dify 서버 자체의 버전별 공식 Compose 배포는 별도 승인·오프라인 번들 작업 필요)
-- Jennifer MCP adapter는 `initialize`/`tools/list` 탐색만 구현. 실제 tool 호출은 실제 서버 도구 스키마 확인 전까지 차단
-- Jennifer MCP 서버(`mcp-servers/jennifer/`, compose 서비스 `jennifer-mcp`): 읽기 전용, 설치 직후 비활성
+- 제니퍼는 벤더 MCP 서버가 없으므로, 자체 컨테이너 `jennifer-mcp`(`mcp-servers/jennifer/`)가 뷰서버 Open API(REST)를 GET으로 호출하고 그 결과를 LLM 도구로 제공. 설치 직후 비활성
 
 ## 빠른 시작
 1. NVMe `/data`, HDD `/backup`을 먼저 마운트합니다. 스크립트는 포맷/파티션 변경을 하지 않습니다.
@@ -43,7 +42,7 @@ Ubuntu 24.04 폐쇄망 GPU PC용 React 대시보드와 초기 설치·오프라�
 ## 실제 연동이 필요한 항목
 - 기관/업무 기준 API의 URL·인증·응답 필드 매핑
 - 장애 이력 API와 이벤트 이력 API의 실제 URL·인증·응답 JSON
-- Jennifer MCP 실 서버의 protocol/tool schema/arguments/response envelope
+- 제니퍼 뷰서버 Open API 경로·파라미터·응답 형식 (Swagger + 전수 GET 호출)
 - Dify Workflow ID, API Key, 입력·출력 필드 매핑 및 Dify 서버 오프라인 설치
 - 사용자 인증/RBAC/기관 SSO, TLS 인증서, 실제 방화벽 정책
 
